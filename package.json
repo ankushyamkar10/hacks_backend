@@ -1,0 +1,22 @@
+{
+  "name": "hackbackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "express-session": "^1.18.0",
+    "googleapis": "^131.0.0",
+    "instagram-private-api": "^1.45.3",
+    "request-promise": "^4.2.6"
+  }
+}
