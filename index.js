@@ -302,6 +302,13 @@ app.post("/post-video-facebook", async (req, res) => {
   res.send(response.data);
 });
 
+app.get("/get-facebook-posts", async (req, res) => {
+  const response = await axios.get(
+    `https://graph.facebook.com/v19.0/214846575048732/feed?access_token=${process.env.meta_access_token}&fields=message,full_picture,likes.limit(1).summary(true),comments.limit(1).summary(true),shares`
+  );
+  res.send(response.data);
+});
+
 app.all("*", (req, res) => {
   res.status(404).json({ message: "Route Not Found" });
 });
