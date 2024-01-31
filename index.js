@@ -33,16 +33,6 @@ const oauth2Client = new google.auth.OAuth2(
 );
 const ig = new IgApiClient();
 
-async function ConnectInsta() {
-  ig.state.generateDevice(process.env.IG_USERNAME);
-  const res = await ig.account.login(
-    process.env.IG_USERNAME,
-    process.env.IG_PASSWORD
-  );
-  return res;
-}
-ConnectInsta().then((res) => {});
-
 try {
   const creds = fs.readFileSync("creds.json");
   oauth2Client.setCredentials(JSON.parse(creds));
@@ -83,6 +73,18 @@ app.post("/get-youtube-auth-code", async (req, res) => {
     res.status(200).json({ message: "Authentication Successfull" });
   } catch (e) {
     res.status(500).json(e.message);
+  }
+});
+
+app.post("/connect-instagram", async (req, res) => {
+  const { username, password } = req.body;
+  ig.state.generateDevice(username);
+  try {
+    const data = await ig.account.login(username, password);
+    res.send(data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json(error);
   }
 });
 
