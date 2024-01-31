@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const dotenv = require("dotenv").config();
+const bodypareser = require("body-parser");
 const port = 4000;
 const path = require("path");
 const { google } = require("googleapis");
@@ -10,9 +11,11 @@ const fs = require("fs");
 const session = require("express-session");
 const { IgApiClient } = require("instagram-private-api");
 const { get } = require("request-promise");
+const multer = require("multer");
+const { Console } = require("console");
 
-app.use(express.json({ extended: true, limit: "500mb" }));
-app.use(express.urlencoded({ extended: true, limit: "500mb" }));
+app.use(bodypareser.json());
+
 app.use(cors());
 
 app.use(
@@ -46,6 +49,33 @@ const scopes = [
   "https://www.googleapis.com/auth/youtubepartner",
   "https://www.googleapis.com/auth/youtubepartner-channel-audit",
 ];
+
+// const imageStorage = multer.diskStorage({
+//   // Destination to store image
+//   destination: "public",
+//   filename: (req, file, cb) => {
+//     cb(
+//       null,
+//       file.fieldname + "_" + Date.now() + path.extname(file.originalname)
+//     );
+//     // file.fieldname is name of the field (image)
+//     // path.extname get the uploaded file extension
+//   },
+// });
+
+// const imageUpload = multer({
+//   storage: imageStorage,
+//   limits: {
+//     fileSize: 1000000,
+//   },
+//   fileFilter(req, file, cb) {
+//     if (!file.originalname.match(/\.(png|jpg)$/)) {
+//       // upload only png and jpg format
+//       return cb(new Error("Please upload a Image"));
+//     }
+//     cb(undefined, true);
+//   },
+// });
 
 app.get("/get-youtube-authorizationurl", async (req, res) => {
   let authorizationUrl = oauth2Client.generateAuthUrl({
@@ -149,6 +179,26 @@ app.post("/upload-instagram-post", async (req, res) => {
   }
 });
 
+app.post("/upload-instagram-video", async (req, res) => {
+  // const { media, caption, tags } = req.body;
+
+  try {
+    const response = await axios.post(
+      `https://graph.facebook.com/v18.0/kaustubh_desphande_12/media`,
+      {
+        access_token: process.env.meta_access_token,
+        caption: "New Video",
+        media_type: "REELS",
+        video_url: "./temp2.mp4",
+        // cover_url: coverUrl,
+      }
+    );
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+
 app.get("/get-instagram-posts", async (req, res) => {
   try {
     const currentUser = await ig.user.info(ig.state.cookieUserId);
@@ -186,6 +236,70 @@ app.get("/get-instagram-posts", async (req, res) => {
     console.error("Error fetching posts:", error);
     res.status(500).json(error);
   }
+});
+
+app.post("/post-feed-facebook", async (req, res) => {
+  const response = await axios.post(
+    `https://graph.facebook.com/v19.0/214846575048732/photos?access_token=${process.env.meta_access_token}`,
+    {
+      url: req.body.media.url,
+    },
+    {
+      "Content-Type": "application/json",
+    }
+  );
+  res.send(response.data);
+});
+
+app.post("/post-photo-facebook", async (req, res) => {
+  try {
+    const url = req.body.url;
+    const response = await axios.post(
+      `https://graph.facebook.com/v19.0/214846575048732/photos?access_token=${process.env.meta_access_token}&url=${url}`,
+
+      {
+        "Content-Type": "application/json",
+      }
+    );
+    res.send(response.data);
+  } catch (e) {
+    res.status(500).json(e);
+  }
+});
+
+app.post("/post-video-facebook", async (req, res) => {
+  var stats = fs.statSync(req.body.url);
+  // console.log(req.body);
+  var fileSizeInBytes = stats.size;
+  console.log(fileSizeInBytes);
+  const response = await axios.post(
+    `https://graph.facebook.com/v19.0/214846575048732/videos?upload_phase=start&access_token=${process.env.meta_access_token}&file_size=${fileSizeInBytes}`,
+    {
+      url: req.body.url,
+    },
+    {
+      "Content-Type": "application/json",
+    }
+  );
+
+  const { upload_session_id, start_offset } = response.data;
+
+  const responseChunk = await axios.post(
+    `https://graph.facebook.com/v19.0/214846575048732/videos?upload_phase=transfer&access_token=${process.env.meta_access_token}&upload_session_id=${upload_session_id}&start_offset=${start_offset}&video_file_chunk='abcd'`,
+    // {
+    //   url: req.body.url,
+    // },
+    {
+      "Content-Type": "application/json",
+    }
+  );
+  // {page-id}/videos
+  // ?upload_phase=transfer
+  // &access_token={access-token}
+  // &upload_session_id={upload-session-id}
+  // &start_offset={start-offset}
+  // &video_file_chunk={video-file-chunk}
+  res.send(response.data);
 });
 
 app.all("*", (req, res) => {
