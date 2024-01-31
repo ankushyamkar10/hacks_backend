@@ -89,7 +89,7 @@ app.get("/get-youtube-authorizationurl", async (req, res) => {
 });
 
 app.get("/get-youtube-auth-code", async (req, res) => {
-  const { code } = req.params;
+  const { code } = req.query;
   try {
     let { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
