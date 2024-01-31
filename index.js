@@ -11,13 +11,10 @@ const session = require("express-session");
 const { IgApiClient } = require("instagram-private-api");
 const { get } = require("request-promise");
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: ["http://localhost:5173"],
-  })
-);
+app.use(express.json({ extended: true, limit: "500mb" }));
+app.use(express.urlencoded({ extended: true, limit: "500mb" }));
+app.use(cors());
+
 app.use(
   session({
     secret: "HACKS_TSEC_CAPSLOCK", // Change this to a strong, random string
@@ -132,19 +129,62 @@ app.post("/upload-youtube-video", async (req, res) => {
 });
 
 app.post("/upload-instagram-post", async (req, res) => {
+  const { media, caption, tags } = req.body;
+
   try {
-    const imageBuffer = await get({
-      url: "https://picsum.photos/id/1/200/300",
-      encoding: null,
-    });
+    const mediaBuffer = Buffer.from(media, "base64");
+
+    // const imageBuffer = await get({
+    //   url: "https://picsum.photos/200",
+    //   encoding: null,
+    // });
 
     const data = await ig.publish.photo({
-      file: imageBuffer,
-      caption: "Really nice photo from the internet!",
+      file: mediaBuffer,
+      caption: caption + " #" + tags.join(" #"),
     });
     res.send(data.media);
   } catch (error) {
     res.status(500).json(error.message);
+  }
+});
+
+app.get("/get-instagram-posts", async (req, res) => {
+  try {
+    const currentUser = await ig.user.info(ig.state.cookieUserId);
+    const userId = currentUser.pk;
+
+    const feed = await ig.feed.user(userId);
+
+    const posts = await feed.items();
+
+    const postData = [];
+    posts.forEach((post) => {
+      const { user, caption, like_count, comment_count, share_count } = post;
+      const username = user.username;
+      const profilePicUrl = user.profile_pic_url;
+      const imageUrls = post.image_versions2?.candidates
+        .map((candidate, index) => index % 2 == 0 && candidate.url)
+        .filter(Boolean);
+
+      const captionText = caption?.text;
+
+      const tags = captionText.match(/#[^\s#]+/g) || [];
+
+      postData.push({
+        username,
+        tags,
+        imageUrls,
+        profilePicUrl,
+        like_count,
+        comment_count,
+        share_count,
+      });
+    });
+    res.send(postData);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json(error);
   }
 });
 
