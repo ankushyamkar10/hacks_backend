@@ -84,12 +84,12 @@ app.get("/get-youtube-authorizationurl", async (req, res) => {
     scope: scopes,
     include_granted_scopes: true,
   });
-
-  res.send(authorizationUrl);
+  res.redirect("/authorizationUrl");
+  // res.send(authorizationUrl);
 });
 
 app.get("/get-youtube-auth-code", async (req, res) => {
-  const { code } = req.body;
+  const { code } = req.params;
   try {
     let { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
