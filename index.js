@@ -162,16 +162,16 @@ app.post("/upload-instagram-post", async (req, res) => {
   const { media, caption, tags } = req.body;
 
   try {
-    const mediaBuffer = Buffer.from(media, "base64");
+    // const mediaBuffer = Buffer.from(media, "base64");
 
-    // const imageBuffer = await get({
-    //   url: "https://picsum.photos/200",
-    //   encoding: null,
-    // });
+    const mediaBuffer = await get({
+      url: media,
+      encoding: null,
+    });
 
     const data = await ig.publish.photo({
       file: mediaBuffer,
-      caption: caption + " #" + tags.join(" #"),
+      caption: caption + " " + tags.join(" #"),
     });
     res.send(data.media);
   } catch (error) {
@@ -229,6 +229,7 @@ app.get("/get-instagram-posts", async (req, res) => {
         like_count,
         comment_count,
         share_count,
+        captionText,
       });
     });
     res.send(postData);
@@ -307,6 +308,45 @@ app.get("/get-facebook-posts", async (req, res) => {
     `https://graph.facebook.com/v19.0/214846575048732/feed?access_token=${process.env.meta_access_token}&fields=message,full_picture,likes.limit(1).summary(true),comments.limit(1).summary(true),shares`
   );
   res.send(response.data);
+});
+
+app.get("/get-youtube-uploads", async (req, res) => {
+  //get channellist  channel_Id
+  if (oauth2Client.credentials.access_token) {
+    const youtube = google.youtube({
+      version: "v3",
+      auth: oauth2Client,
+    });
+    let result = null;
+
+    try {
+      const channelList = await youtube.channels.list({
+        part: ["contentDetails"],
+        id: ["UCcfuXveNx-VP14FJRbNo7bw"],
+      });
+
+      if (channelList.data) {
+        const playlist = await youtube.playlistItems.list({
+          part: ["snippet"],
+          playlistId: "UUcfuXveNx-VP14FJRbNo7bw",
+          // channelList.data.items.contentDetails.relatedPlaylists.uploads,
+        });
+
+        if (playlist.data) {
+          result = playlist.data.items;
+        }
+      }
+    } catch (error) {
+      res.status(500).json(error);
+    }
+
+    res.send(result);
+  } else {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  //get playlist list uploads
+  //get videos by video id
 });
 
 app.all("*", (req, res) => {
