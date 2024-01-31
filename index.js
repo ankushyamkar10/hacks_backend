@@ -82,6 +82,7 @@ app.get("/get-youtube-authorizationurl", async (req, res) => {
     access_type: "offline",
     scope: scopes,
     include_granted_scopes: true,
+    redirect_uri: process.env.redirect_uris,
   });
 
   res.send(authorizationUrl);
