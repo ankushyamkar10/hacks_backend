@@ -11,8 +11,9 @@ const fs = require("fs");
 const session = require("express-session");
 const { IgApiClient } = require("instagram-private-api");
 const { get } = require("request-promise");
-const multer = require("multer");
-const { Console } = require("console");
+const { HfInference } = require("@huggingface/inference");
+const cloudinary = require("cloudinary").v2;
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 app.use(bodypareser.json());
 
@@ -40,6 +41,15 @@ try {
 } catch (err) {
   console.log("No creds found");
 }
+
+cloudinary.config({
+  cloud_name: "dfy3abzt0",
+  api_key: "343664451281917",
+  api_secret: "wMXPCBOc6XURqDJsmFC1rWft0TM",
+});
+const hf = new HfInference("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");
+
+const genAI = new GoogleGenerativeAI("AIzaSyCzSi5bGSDmJvUDezw2uThopwCPCbNJO5I");
 
 const scopes = [
   "https://www.googleapis.com/auth/youtube",
@@ -348,6 +358,59 @@ app.get("/get-youtube-uploads", async (req, res) => {
   }
   //get playlist list uploads
   //get videos by video id
+});
+
+app.post("/generate-image-from-text", async (req, res) => {
+  let result;
+  const blob = await hf.textToImage({
+    inputs: req.body.title,
+    model: "stabilityai/stable-diffusion-2",
+  });
+
+  const buffer = Buffer.from(await blob.arrayBuffer());
+
+  const uploadPromise = new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        { resource_type: "raw", format: "jpg" },
+        (error, uploadResult) => {
+          if (error) {
+            console.error("Error uploading to Cloudinary:", error);
+            reject(error); // Reject the promise if there's an error
+          } else {
+            const imageUrl = uploadResult.secure_url;
+            result = imageUrl;
+            resolve(result); // Resolve the promise with the result
+          }
+        }
+      )
+      .end(buffer);
+  });
+
+  // Wait for the upload process to complete and the result to be set
+  try {
+    result = await uploadPromise;
+    // console.log(result);
+    res.send(result);
+  } catch (error) {
+    res.status(500).json({ message: `Cannot generate image ${error}` });
+  }
+});
+
+app.post("/generate-caption", async (req, res) => {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  const prompt = `Generate a short and catchy caption for a YouTube/Instagram post based on the following title: ${req.body.title}. The caption should be engaging and descriptive, attracting viewers' attention and encouraging them to watch the video or engage with the post. Consider using emojis, hashtags, and relevant keywords to enhance the appeal of the caption.
+  `;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const text = response.text();
+  if (text) {
+    res.send(text);
+  } else {
+    res.status(500).json({ message: "Cannot generate image" });
+  }
 });
 
 app.all("*", (req, res) => {
