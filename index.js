@@ -31,6 +31,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.client_secret,
   process.env.redirect_uris
 );
+
 const ig = new IgApiClient();
 
 try {
@@ -82,13 +83,12 @@ app.get("/get-youtube-authorizationurl", async (req, res) => {
     access_type: "offline",
     scope: scopes,
     include_granted_scopes: true,
-    redirect_uri: process.env.redirect_uris,
   });
 
   res.send(authorizationUrl);
 });
 
-app.post("/get-youtube-auth-code", async (req, res) => {
+app.get("/get-youtube-auth-code", async (req, res) => {
   const { code } = req.body;
   try {
     let { tokens } = await oauth2Client.getToken(code);
