@@ -84,7 +84,7 @@ app.get("/get-youtube-authorizationurl", async (req, res) => {
     scope: scopes,
     include_granted_scopes: true,
   });
-  res.redirect("/authorizationUrl");
+  res.redirect("/get-youtube-auth-code");
   // res.send(authorizationUrl);
 });
 
