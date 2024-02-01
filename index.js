@@ -87,13 +87,23 @@ const scopes = [
 //     cb(undefined, true);
 //   },
 // });
+var authorizationUrl;
+var authed = false;
+
+app.get("/", (req, res) => {
+  if (!authed) {
+    authorizationUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      include_granted_scopes: true,
+    });
+    if (authorizationUrl) res.send({ message: "Done authorizationUrl" });
+    else res.status(500).json({ message: "Cannot generate authorizationUrl" });
+  }
+  return;
+});
 
 app.get("/get-youtube-authorizationurl", async (req, res) => {
-  let authorizationUrl = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: scopes,
-    include_granted_scopes: true,
-  });
   res.redirect(authorizationUrl);
   // res.send(authorizationUrl);
 });
@@ -105,6 +115,7 @@ app.get("/get-youtube-auth-code", async (req, res) => {
     oauth2Client.setCredentials(tokens);
     try {
       fs.writeFileSync("creds.json", JSON.stringify(tokens));
+      authed = true;
     } catch (error) {
       res.status(400).json(error.message);
     }
